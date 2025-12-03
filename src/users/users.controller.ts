@@ -3,24 +3,31 @@ import {
   Get,
   Post,
   Body,
-  Param,
   Patch,
+  Param,
   Delete,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt.guard';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Request } from 'express';
 
 @Controller('users')
+@UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Post('create')
-  create(@Body() dto: CreateUserDto) {
-    return this.usersService.create(dto);
+  @Post()
+  create(@Body() data: CreateUserDto) {
+    return this.usersService.create(data);
+  }
+
+  @Get('me')
+  getMe(@Req() req: Request) {
+    return req.user;
   }
 
   @Get()
@@ -30,23 +37,16 @@ export class UsersController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
+    return this.usersService.findOne(+id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return this.usersService.update(id, dto);
+  update(@Param('id') id: string, @Body() data: UpdateUserDto) {
+    return this.usersService.update(+id, data);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.usersService.remove(id);
-  }
-
-  // 🔐 ROTA PROTEGIDA
-  @UseGuards(JwtAuthGuard)
-  @Get('me')
-  me(@CurrentUser() user: any) {
-    return user;
+    return this.usersService.remove(+id);
   }
 }
