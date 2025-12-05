@@ -25,6 +25,12 @@ export class LessonsService {
       data,
     });
   }
+  
+  async countLessonsInCourse(courseId: number): Promise<number> {
+    return this.prisma.lesson.count({
+      where: { courseId },
+    });
+  }
 
   remove(id: number) {
     return this.prisma.lesson.delete({

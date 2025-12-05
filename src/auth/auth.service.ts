@@ -23,7 +23,8 @@ export class AuthService {
       password: hashed,
     });
 
-    return { message: 'Usuário criado com sucesso', user };
+    const { password, ...result } = user;
+    return { message: 'Usuário criado com sucesso', user: result };
   }
 
   async login(email: string, password: string) {
@@ -36,6 +37,7 @@ export class AuthService {
     const token = await this.jwt.signAsync({
       sub: user.id,
       email: user.email,
+      role: user.role, 
     });
 
     return { access_token: token };

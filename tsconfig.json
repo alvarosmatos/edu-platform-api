@@ -9,9 +9,12 @@
     "target": "es2017",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
+    "baseUrl": "./src",      
     "incremental": true,
-    "strictNullChecks": false
+    "strictNullChecks": false,
+    "paths": {                 
+      "@/*": ["*"]             
+    }
   },
   "ts-node": {
     "transpileOnly": true

@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" // ajuste conforme seu DB (postgresql / sqlite / mysql)
+  provider = "sqlite" 
   url      = env("DATABASE_URL")
 }
 
@@ -12,10 +12,13 @@ model User {
   email     String   @unique
   password  String
   name      String
+  role      String   @default("STUDENT") 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   enrollments Enrollment[]
+  lessonsCompleted UserLesson[]
+  courseProgresses CourseProgress[]
 }
 
 model Course {
@@ -27,6 +30,7 @@ model Course {
 
   lessons   Lesson[]
   enrollments Enrollment[]
+  courseProgresses CourseProgress[]
 }
 
 model Lesson {
@@ -37,6 +41,30 @@ model Lesson {
   course    Course   @relation(fields: [courseId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  usersCompleted UserLesson[]
+}
+
+model UserLesson {
+  userId    Int
+  lessonId  Int
+  completedAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  lesson Lesson @relation(fields: [lessonId], references: [id])
+
+  @@id([userId, lessonId])
+}
+
+model CourseProgress {
+  userId    Int
+  courseId  Int
+  progress  Int    @default(0) 
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@id([userId, courseId])
 }
 
 model Enrollment {
@@ -48,4 +76,6 @@ model Enrollment {
 
   user   User   @relation(fields: [userId], references: [id])
   course Course @relation(fields: [courseId], references: [id])
+  
+  @@unique([userId, courseId]) 
 }

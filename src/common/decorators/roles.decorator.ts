@@ -1,13 +1,7 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+// src/common/decorators/roles.decorator.ts
 
-@Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
-  async onModuleInit() {
-    await this.$connect();
-  }
+import { SetMetadata } from '@nestjs/common';
+import { UserRole } from '../enums/user-role.enum';
 
-  async onModuleDestroy() {
-    await this.$disconnect();
-  }
-}
+export const ROLES_KEY = 'roles';
+export const Roles = (...roles: UserRole[]) => SetMetadata(ROLES_KEY, roles);

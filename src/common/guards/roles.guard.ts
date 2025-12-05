@@ -4,18 +4,25 @@ import {
   ExecutionContext,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { UserRole } from '../enums/user-role.enum';
+import { ROLES_KEY } from '../decorators/roles.decorator';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const roles = this.reflector.get<string[]>('roles', context.getHandler());
-    if (!roles) return true;
+    const requiredRoles = this.reflector.get<UserRole[]>(
+      ROLES_KEY,
+      context.getHandler(),
+    );
+    if (!requiredRoles) {
+      return true; 
+    }
 
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
+    const { user } = context.switchToHttp().getRequest();
+    // O campo user.role é uma string do DB (ADMIN, PROFESSOR, STUDENT)
 
-    return roles.includes(user?.role);
+    return requiredRoles.some((role) => user.role === role);
   }
 }

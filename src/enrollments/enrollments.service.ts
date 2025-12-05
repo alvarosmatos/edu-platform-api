@@ -5,12 +5,19 @@ import { PrismaService } from '../prisma/prisma.service';
 export class EnrollmentsService {
   constructor(private prisma: PrismaService) {}
 
-  // → Este é o método que o controller chama
   enroll(data: any) {
     return this.prisma.enrollment.create({ data });
   }
 
-  // → Também usado no controller
+  async isUserEnrolled(userId: number, courseId: number): Promise<boolean> {
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: {
+        userId_courseId: { userId, courseId },
+      },
+    });
+    return !!enrollment;
+  }
+  
   findByUser(userId: number) {
     return this.prisma.enrollment.findMany({
       where: { userId },

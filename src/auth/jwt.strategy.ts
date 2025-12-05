@@ -1,3 +1,4 @@
+// src/auth/jwt.strategy.ts
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
@@ -19,12 +20,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    const user = await this.usersService.findById(payload.sub);
+    // Busca o usuário, que agora inclui o campo 'role' (graças à modificação no UsersService)
+    const user = await this.usersService.findOne(payload.sub); 
 
     if (!user) {
       throw new UnauthorizedException('Token inválido ou usuário inexistente.');
     }
-
-    return user;
+    
+    // Retorna o objeto user completo (incluindo id, email, name, role)
+    return user; 
   }
 }
