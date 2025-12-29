@@ -3,67 +3,70 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite" 
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  name      String
-  role      String   @default("STUDENT") 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  enrollments Enrollment[]
+  id               Int              @id @default(autoincrement())
+  email            String           @unique
+  password         String
+  name             String
+  role             String           @default("STUDENT")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  
+  // Relação: Cursos criados por este usuário
+  coursesCreated   Course[]         @relation("CourseAuthor")
+  
+  enrollments      Enrollment[]
   lessonsCompleted UserLesson[]
   courseProgresses CourseProgress[]
 }
 
 model Course {
-  id        Int      @id @default(autoincrement())
-  title     String
-  description String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               Int              @id @default(autoincrement())
+  title            String
+  description      String?
+  
+  // Relação: Referência ao autor (Professor/Admin)
+  authorId         Int
+  author           User             @relation("CourseAuthor", fields: [authorId], references: [id])
+  
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
-  lessons   Lesson[]
-  enrollments Enrollment[]
+  lessons          Lesson[]
+  enrollments      Enrollment[]
   courseProgresses CourseProgress[]
 }
 
 model Lesson {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String?
-  courseId  Int
-  course    Course   @relation(fields: [courseId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id             Int          @id @default(autoincrement())
+  title          String
+  content        String?
+  courseId       Int
+  course         Course       @relation(fields: [courseId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
   usersCompleted UserLesson[]
 }
 
 model UserLesson {
-  userId    Int
-  lessonId  Int
+  userId      Int
+  lessonId    Int
   completedAt DateTime @default(now())
-
-  user   User   @relation(fields: [userId], references: [id])
-  lesson Lesson @relation(fields: [lessonId], references: [id])
-
+  user        User     @relation(fields: [userId], references: [id])
+  lesson      Lesson   @relation(fields: [lessonId], references: [id])
   @@id([userId, lessonId])
 }
 
 model CourseProgress {
   userId    Int
   courseId  Int
-  progress  Int    @default(0) 
-
-  user   User   @relation(fields: [userId], references: [id])
-  course Course @relation(fields: [courseId], references: [id])
-
+  progress  Int    @default(0)
+  user      User   @relation(fields: [userId], references: [id])
+  course    Course @relation(fields: [courseId], references: [id])
   @@id([userId, courseId])
 }
 
@@ -73,9 +76,7 @@ model Enrollment {
   courseId  Int
   status    String   @default("active")
   createdAt DateTime @default(now())
-
-  user   User   @relation(fields: [userId], references: [id])
-  course Course @relation(fields: [courseId], references: [id])
-  
-  @@unique([userId, courseId]) 
+  user      User     @relation(fields: [userId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id])
+  @@unique([userId, courseId])
 }

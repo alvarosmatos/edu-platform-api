@@ -1,45 +1,51 @@
-import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
-import { UsersService } from '../users/users.service';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { HashService } from '../common/hash.service';
-import { CreateUserDto } from '../users/dto/create-user.dto';
+import { UsersService } from '../users/users.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private usersService: UsersService,
-    private jwt: JwtService,
-    private hash: HashService,
+    private jwtService: JwtService,
   ) {}
 
-  async register(data: CreateUserDto) {
-    const exists = await this.usersService.findByEmail(data.email);
-    if (exists) throw new BadRequestException('E-mail já está em uso.');
+  async validateUser(email: string, pass: string): Promise<any> {
+    this.logger.log(`Tentando validar usuário: ${email}`);
+    
+    const user = await this.usersService.findByEmail(email);
+    
+    if (!user) {
+      this.logger.warn(`Usuário não encontrado no banco: ${email}`);
+      return null;
+    }
 
-    const hashed = await this.hash.hash(data.password);
+    // Compara a senha digitada com o hash do banco
+    const isMatch = await bcrypt.compare(pass, user.password);
+    
+    if (isMatch) {
+      this.logger.log(`Senha validada com sucesso para: ${email}`);
+      const { password, ...result } = user;
+      return result;
+    }
 
-    const user = await this.usersService.create({
-      ...data,
-      password: hashed,
-    });
-
-    const { password, ...result } = user;
-    return { message: 'Usuário criado com sucesso', user: result };
+    this.logger.error(`Senha incorreta para o usuário: ${email}`);
+    return null;
   }
 
-  async login(email: string, password: string) {
-    const user = await this.usersService.findByEmail(email);
-    if (!user) throw new UnauthorizedException('Credenciais inválidas.');
-
-    const valid = await this.hash.compare(password, user.password);
-    if (!valid) throw new UnauthorizedException('Credenciais inválidas.');
-
-    const token = await this.jwt.signAsync({
-      sub: user.id,
-      email: user.email,
-      role: user.role, 
-    });
-
-    return { access_token: token };
+  async login(user: any) {
+    const payload = { email: user.email, sub: user.id, role: user.role };
+    
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    };
   }
 }

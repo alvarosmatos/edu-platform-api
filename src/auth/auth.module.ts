@@ -11,7 +11,7 @@ import { HashService } from '../common/hash.service';
     UsersModule,
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET || 'SUA_CHAVE_SECRETA_MUITO_FORTE',
+      secret: process.env.JWT_SECRET || 'CHAVE_ULTRA_SECRETA_123',
       signOptions: { expiresIn: '1d' },
     }),
   ],

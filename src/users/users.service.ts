@@ -1,97 +1,48 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { User } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
-export type UserWithoutPassword = {
-  id: number;
-  email: string;
-  name: string;
-  role: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
+// Exportado para ser usado pelo UserLessonsController
+export type UserWithoutPassword = Omit<User, 'password'>;
 
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  private userSelect = { 
-    id: true, 
-    email: true, 
-    name: true, 
-    role: true, 
-    createdAt: true, 
-    updatedAt: true 
-  };
+  async create(data: CreateUserDto) {
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+    return this.prisma.user.create({
+      data: { ...data, password: hashedPassword },
+    });
+  }
 
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({ where: { email } });
   }
 
-  async findById(id: number): Promise<UserWithoutPassword | null> {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-      select: this.userSelect,
+  async findOne(id: number) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('Usuário não encontrado');
+    const { password, ...result } = user;
+    return result;
+  }
+
+  // Dashboard: Retorna cursos matriculados com o progresso calculado
+  async getMyProgress(userId: number) {
+    return this.prisma.enrollment.findMany({
+      where: { userId },
+      include: {
+        course: {
+          include: {
+            author: { select: { name: true } },
+            courseProgresses: {
+              where: { userId }
+            }
+          }
+        }
+      }
     });
-
-    return user as UserWithoutPassword;
-  }
-
-  async create(data: CreateUserDto) {
-    return this.prisma.user.create({ data });
-  }
-
-  async findAll(): Promise<UserWithoutPassword[]> {
-    return this.prisma.user.findMany({
-      select: this.userSelect,
-    }) as unknown as UserWithoutPassword[];
-  }
-
-  async findOne(id: number): Promise<UserWithoutPassword> {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-      select: this.userSelect,
-    });
-
-    if (!user) throw new NotFoundException(`Usuário com ID ${id} não encontrado.`);
-
-    return user as UserWithoutPassword;
-  }
-
-  async update(id: number, data: UpdateUserDto): Promise<UserWithoutPassword> {
-    try {
-      return (await this.prisma.user.update({
-        where: { id },
-        data,
-        select: this.userSelect,
-      })) as UserWithoutPassword;
-    } catch (error) {
-      if (error?.code === 'P2025') throw new NotFoundException(`Usuário com ID ${id} não encontrado.`);
-      throw error;
-    }
-  }
-  
-  async updateRole(id: number, role: string): Promise<UserWithoutPassword> { 
-    try {
-      return (await this.prisma.user.update({
-        where: { id },
-        data: { role },
-        select: this.userSelect,
-      })) as UserWithoutPassword;
-    } catch (error) {
-      if (error?.code === 'P2025') throw new NotFoundException(`Usuário com ID ${id} não encontrado.`);
-      throw error;
-    }
-  }
-
-  async remove(id: number) {
-    try {
-      await this.prisma.user.delete({ where: { id } });
-      return { message: `Usuário com ID ${id} removido com sucesso.` };
-    } catch (error) {
-      if (error?.code === 'P2025') throw new NotFoundException(`Usuário com ID ${id} não encontrado.`);
-      throw error;
-    }
   }
 }

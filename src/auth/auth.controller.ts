@@ -1,19 +1,36 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
+import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
-@Controller('auth') // Rota Base
+@ApiTags('auth')
+@Controller('auth')
 export class AuthController {
-  constructor(private auth: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private usersService: UsersService, // Injetado para lidar com o registro
+  ) {}
 
-  @Post('register') // Rota Completa: POST /auth/register
-  register(@Body() data: RegisterDto) {
-    return this.auth.register(data);
+  @Post('register')
+  @ApiOperation({ summary: 'Registrar um novo usuário' })
+  async register(@Body() data: RegisterDto) {
+    // CORREÇÃO: Chama o UsersService para criar o usuário
+    return this.usersService.create(data);
   }
 
-  @Post('login') // Rota Completa: POST /auth/login
-  login(@Body() body: LoginDto) {
-    return this.auth.login(body.email, body.password);
+  @Post('login')
+  @ApiOperation({ summary: 'Realizar login e obter token JWT' })
+  async login(@Body() body: LoginDto) {
+    // CORREÇÃO: Primeiro valida o usuário
+    const user = await this.authService.validateUser(body.email, body.password);
+    
+    if (!user) {
+      throw new UnauthorizedException('Credenciais inválidas.');
+    }
+
+    // CORREÇÃO: Passa o objeto do usuário (1 argumento) para o método login
+    return this.authService.login(user);
   }
 }
