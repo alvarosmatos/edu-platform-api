@@ -1,48 +1,56 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
-import { User } from '@prisma/client';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UserLessonsService } from '../user-lessons/user-lessons.service';
 import * as bcrypt from 'bcrypt';
-
-// Exportado para ser usado pelo UserLessonsController
-export type UserWithoutPassword = Omit<User, 'password'>;
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    @Inject(forwardRef(() => UserLessonsService))
+    private userLessonsService: UserLessonsService,
+  ) {}
 
   async create(data: CreateUserDto) {
-    const hashedPassword = await bcrypt.hash(data.password, 10);
-    return this.prisma.user.create({
-      data: { ...data, password: hashedPassword },
+    const salt = await bcrypt.genSalt();
+    const hashedPassword = await bcrypt.hash(data.password, salt);
+    const user = this.userRepository.create({ 
+      ...data, 
+      password: hashedPassword,
+      createdAt: Math.floor(Date.now() / 1000),
+      updatedAt: Math.floor(Date.now() / 1000)
     });
+    return await this.userRepository.save(user);
   }
 
+
   async findByEmail(email: string) {
-    return this.prisma.user.findUnique({ where: { email } });
+    return await this.userRepository.findOne({ where: { email } });
   }
 
   async findOne(id: number) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.userRepository.findOne({ 
+      where: { id },
+      relations: ['enrollments', 'enrollments.course'] 
+    });
     if (!user) throw new NotFoundException('Usuário não encontrado');
-    const { password, ...result } = user;
-    return result;
+    return user;
   }
 
-  // Dashboard: Retorna cursos matriculados com o progresso calculado
-  async getMyProgress(userId: number) {
-    return this.prisma.enrollment.findMany({
-      where: { userId },
-      include: {
-        course: {
-          include: {
-            author: { select: { name: true } },
-            courseProgresses: {
-              where: { userId }
-            }
-          }
-        }
-      }
+  async update(id: number, data: UpdateUserDto) {
+    if (data.password) {
+      const salt = await bcrypt.genSalt();
+      data.password = await bcrypt.hash(data.password, salt);
+    }
+    await this.userRepository.update(id, {
+      ...data,
+      updatedAt: Math.floor(Date.now() / 1000)
     });
+    return this.findOne(id);
   }
 }

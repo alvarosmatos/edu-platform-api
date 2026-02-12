@@ -1,14 +1,15 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport'; // Adicionado para suporte a estratégias
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { JwtStrategy } from './jwt.strategy';
+import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
-import { HashService } from '../common/hash.service'; 
 
 @Module({
   imports: [
     UsersModule,
+    PassportModule,
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET || 'CHAVE_ULTRA_SECRETA_123',
@@ -16,7 +17,7 @@ import { HashService } from '../common/hash.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, HashService], // HashService fornecido
+  providers: [AuthService, JwtStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}

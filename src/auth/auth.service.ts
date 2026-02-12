@@ -15,6 +15,7 @@ export class AuthService {
   async validateUser(email: string, pass: string): Promise<any> {
     this.logger.log(`Tentando validar usuário: ${email}`);
     
+    // Busca o usuário no SQLite
     const user = await this.usersService.findByEmail(email);
     
     if (!user) {
@@ -22,11 +23,11 @@ export class AuthService {
       return null;
     }
 
-    // Compara a senha digitada com o hash do banco
     const isMatch = await bcrypt.compare(pass, user.password);
     
     if (isMatch) {
       this.logger.log(`Senha validada com sucesso para: ${email}`);
+      // Garante que o 'name' está sendo retornado aqui
       const { password, ...result } = user;
       return result;
     }
@@ -36,8 +37,16 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { email: user.email, sub: user.id, role: user.role };
+    // O payload é o que o jwt-decode lerá no Vue
+    const payload = { 
+      email: user.email, 
+      sub: user.id, 
+      role: user.role,
+      name: user.name // <-- Certifique-se de que o banco preencheu este campo
+    };
     
+    this.logger.log(`Gerando token para o nome: ${user.name}`);
+
     return {
       access_token: this.jwtService.sign(payload),
       user: {

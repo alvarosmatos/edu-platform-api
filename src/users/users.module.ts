@@ -1,12 +1,17 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
-import { PrismaModule } from '../prisma/prisma.module';
+import { User } from './entities/user.entity';
+import { UserLessonsModule } from '../user-lessons/user-lessons.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [
+    TypeOrmModule.forFeature([User]), // Fornece o repositório para o Service
+    forwardRef(() => UserLessonsModule),
+  ],
   controllers: [UsersController],
   providers: [UsersService],
-  exports: [UsersService], // FINAL: Exporta o serviço para o AuthModule
+  exports: [UsersService],
 })
 export class UsersModule {}

@@ -1,18 +1,27 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateCourseDto {
-  @ApiProperty({ example: 'Curso de NestJS', description: 'Título do curso' })
+  @ApiProperty({ example: 'Curso de Inglês' })
   @IsString()
   @IsNotEmpty()
   title: string;
 
-  @ApiProperty({ 
-    example: 'Aprenda a criar APIs profissionais', 
-    description: 'Breve descrição do curso',
-    required: false 
-  })
+  @ApiProperty({ example: 'Descrição do curso', required: false })
   @IsString()
   @IsOptional()
   description?: string;
+
+  @ApiProperty({ example: 'gratuito' })
+  @IsString()
+  type: string;
+
+  @ApiProperty({ example: 0 })
+  @IsNumber()
+  price: number;
+
+  @ApiProperty({ example: 1 })
+  @IsNumber()
+  @IsNotEmpty()
+  authorId: number;
 }

@@ -1,4 +1,4 @@
-# compiled output
+# Arquivos compilados e dependências
 /dist
 /node_modules
 /build
@@ -12,14 +12,14 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# OS
+# Sistema Operacional
 .DS_Store
 
-# Tests
+# Testes e Cobertura
 /coverage
 /.nyc_output
 
-# IDEs and editors
+# IDEs e Editores
 /.idea
 .project
 .classpath
@@ -35,24 +35,32 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# dotenv environment variable files
+# Arquivos de variáveis de ambiente
 .env
 .env.development.local
 .env.test.local
 .env.production.local
 .env.local
 
-# temp directory
+# Diretórios temporários
 .temp
 .tmp
 
-# Runtime data
+# Dados de Runtime
 pids
 *.pid
 *.seed
 *.pid.lock
 
-# Diagnostic reports (https://nodejs.org/api/report.html)
+# Relatórios de diagnóstico
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
-/generated/prisma
+# --- Customização para SOS Idiomas ---
+
+# Banco de dados SQLite (TypeORM)
+*.sqlite
+*.sqlite-journal
+
+# Pasta de Uploads (Arquivos enviados por alunos)
+/uploads/*
+!/uploads/.gitkeep

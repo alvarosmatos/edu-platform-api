@@ -9,17 +9,23 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('lessons')
 @ApiBearerAuth()
-// UNIFICANDO OS GUARDS: A ordem aqui é vital. Primeiro JWT, depois Roles.
 @UseGuards(JwtAuthGuard, RolesGuard) 
 @Controller('lessons')
 export class LessonsController {
   constructor(private readonly lessonsService: LessonsService) {}
 
+  // NOVA ROTA: Resolve o erro 404 e busca por curso
+  @Get('course/:courseId')
+  @ApiOperation({ summary: 'Listar aulas de um curso específico' })
+  findByCourse(@Param('courseId', ParseIntPipe) courseId: number) {
+    // Busca no banco usando a relação courseId
+    return this.lessonsService.findAllByCourse(courseId);
+  }
+
   @Post()
   @Roles('ADMIN', 'PROFESSOR')
   @ApiOperation({ summary: 'Criar uma nova aula' })
   create(@Body() createLessonDto: CreateLessonDto) {
-    // Agora o RolesGuard encontrará o 'user' no request preenchido pelo JwtAuthGuard
     return this.lessonsService.create(createLessonDto);
   }
 

@@ -6,8 +6,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest();
-
+    
     const status = 
       exception instanceof HttpException
         ? exception.getStatus()
@@ -18,11 +17,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.getResponse()
         : { message: 'Erro interno no servidor', statusCode: status };
 
+    // Log para o desenvolvedor ver no terminal
+    console.error('Exception caught:', exception);
+
     response.status(status).json({
-      statusCode: status,
+      ...(typeof message === 'object' ? message : { message }),
       timestamp: new Date().toISOString(),
-      path: request.url,
-      message: (message as any).message || message,
+      path: ctx.getRequest().url,
     });
   }
 }

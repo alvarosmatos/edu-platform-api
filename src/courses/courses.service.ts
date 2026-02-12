@@ -1,73 +1,41 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateCourseDto } from './dto/create-course.dto';
-import { UpdateCourseDto } from './dto/update-course.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Course } from './entities/course.entity';
 
 @Injectable()
 export class CoursesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @InjectRepository(Course)
+    private courseRepository: Repository<Course>,
+  ) {}
 
-  async create(data: CreateCourseDto, authorId: number) {
-    return this.prisma.course.create({
-      data: {
-        ...data,
-        authorId, // Vincula o curso ao professor/admin logado
-      },
+  // MÉTODO ADICIONADO: Corrige o erro TS2339 e habilita a criação via Swagger
+  async create(createCourseDto: any) {
+    const newCourse = this.courseRepository.create({
+      ...createCourseDto,
+      // Define o autor padrão (ex: ID 1) ou pegue do token se o seu DTO não enviar
+      authorId: createCourseDto.authorId || 1, 
+      createdAt: Math.floor(Date.now() / 1000), // Formato integer para o SQLite
+      updatedAt: Math.floor(Date.now() / 1000),
     });
+    
+    return await this.courseRepository.save(newCourse);
   }
 
   async findAll() {
-    return this.prisma.course.findMany({
-      include: { 
-        author: { select: { id: true, name: true, email: true } },
-        _count: { select: { lessons: true } } 
-      },
+    return await this.courseRepository.find({
+      relations: ['lessons'], // Mantém o vínculo com as aulas
+      order: { id: 'ASC' }
     });
   }
 
   async findOne(id: number) {
-    const course = await this.prisma.course.findUnique({
+    const course = await this.courseRepository.findOne({ 
       where: { id },
-      include: { 
-        lessons: true,
-        author: { select: { id: true, name: true } }
-      },
+      relations: ['lessons'] 
     });
-    if (!course) throw new NotFoundException(`Curso #${id} não encontrado`);
+    if (!course) throw new NotFoundException('Curso não encontrado');
     return course;
-  }
-
-  async update(id: number, data: UpdateCourseDto) {
-    return this.prisma.course.update({
-      where: { id },
-      data,
-    });
-  }
-
-  async remove(id: number) {
-    return this.prisma.course.delete({ where: { id } });
-  }
-
-  // NOVO: Lógica de geração de certificado baseada em progresso real
-  async generateCertificate(courseId: number, userId: number) {
-    const progress = await this.prisma.courseProgress.findUnique({
-      where: { userId_courseId: { userId, courseId } },
-    });
-
-    // Valida se o progresso existe e se é exatamente 100%
-    if (!progress || progress.progress < 100) {
-      throw new BadRequestException('Você ainda não concluiu 100% das aulas deste curso.');
-    }
-
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    const course = await this.prisma.course.findUnique({ where: { id: courseId } });
-
-    return {
-      studentName: user.name,
-      courseTitle: course.title,
-      completionDate: new Date(),
-      certificateId: `CERT-${userId}-${courseId}-${Date.now()}`,
-      status: 'Validado pelo Sistema'
-    };
   }
 }
